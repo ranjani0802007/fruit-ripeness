@@ -1,0 +1,224 @@
+{% extends 'prediction/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<style>
+    .custom-pills .nav-link {
+        color: var(--dark-color);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    .custom-pills .nav-link.active {
+        background-color: var(--primary-color);
+        color: white;
+    }
+</style>
+
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center animate-fade-in">
+        <div class="hero-section">
+            <h1 class="hero-title">Protect Your Harvest</h1>
+            <p class="hero-subtitle">Upload an image of your tomato leaf or fruit to identify diseases instantly and get
+                expert treatment recommendations.</p>
+        </div>
+
+        <div class="premium-card p-5">
+            <ul class="nav nav-pills nav-fill mb-4 custom-pills" id="uploadTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold" id="file-tab" data-bs-toggle="tab" data-bs-target="#file-upload" type="button" role="tab" aria-selected="true">📁 File Upload</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold" id="camera-tab" data-bs-toggle="tab" data-bs-target="#camera-upload" type="button" role="tab" aria-selected="false">📷 Open Camera</button>
+                </li>
+            </ul>
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="tab-content text-start" id="uploadTabContent">
+                    <!-- File Upload Tab -->
+                    <div class="tab-pane fade show active" id="file-upload" role="tabpanel">
+                        <div class="mb-4">
+                            {{ form|crispy }}
+                        </div>
+                    </div>
+
+                    <!-- Camera Tab -->
+                    <div class="tab-pane fade" id="camera-upload" role="tabpanel">
+                        <div class="text-center mb-4">
+                            <div id="camera-container" class="bg-dark rounded overflow-hidden position-relative d-none" style="height: 320px;">
+                                <video id="videoElement" class="w-100 h-100 object-fit-cover" autoplay playsinline></video>
+                            </div>
+                            <canvas id="canvasElement" class="d-none"></canvas>
+                            <div id="camera-placeholder" class="bg-light rounded d-flex flex-column align-items-center justify-content-center border" style="height: 320px;">
+                                <span class="fs-1">📷</span>
+                                <p class="text-muted mt-2 fw-semibold">Activate camera to capture an image</p>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-2 mb-4">
+                            <div class="col-6">
+                                <button type="button" class="btn btn-outline-secondary w-100 fw-bold py-2" id="startCameraBtn">1. Start Camera</button>
+                            </div>
+                            <div class="col-6">
+                                <button type="button" class="btn btn-success w-100 fw-bold py-2 disabled" id="captureBtn">2. Capture & Use</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 py-3 mt-2 fw-bold shadow-sm" style="font-size: 1.1rem;">Analyze Leaf Health</button>
+            </form>
+        </div>
+
+        <div class="mt-5 row text-start">
+            <div class="col-md-4 mb-4">
+                <div class="card border-0 bg-transparent">
+                    <div class="card-body">
+                        <div class="h3 text-primary mb-3">01</div>
+                        <h5 class="fw-bold">Upload Image</h5>
+                        <p class="text-muted">Take a clear photo of the affected tomato plant part.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card border-0 bg-transparent">
+                    <div class="card-body">
+                        <div class="h3 text-primary mb-3">02</div>
+                        <h5 class="fw-bold">AI Analysis</h5>
+                        <p class="text-muted">Our advanced CNN model analyzes the patterns in seconds.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card border-0 bg-transparent">
+                    <div class="card-body">
+                        <div class="h3 text-primary mb-3">03</div>
+                        <h5 class="fw-bold">Get Solution</h5>
+                        <p class="text-muted">Receive detailed treatment and prevention plans.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay"
+    class="d-none position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
+    style="background: rgba(255, 255, 255, 0.85); z-index: 2000; backdrop-filter: blur(5px);">
+    <div class="text-center">
+        <div class="spinner-border text-primary mb-3" role="status"
+            style="width: 4rem; height: 4rem; border-width: 0.3em;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <h3 class="fw-bold text-dark animate-pulse">Analyzing Image...</h3>
+        <p class="text-muted">Our AI is checking for diseases</p>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('form');
+        const overlay = document.getElementById('loadingOverlay');
+
+        if (form) {
+            form.addEventListener('submit', function () {
+                // Show overlay
+                overlay.classList.remove('d-none');
+            });
+        }
+
+        // Camera Logic
+        let stream = null;
+        const video = document.getElementById('videoElement');
+        const canvas = document.getElementById('canvasElement');
+        const startBtn = document.getElementById('startCameraBtn');
+        const captureBtn = document.getElementById('captureBtn');
+        const container = document.getElementById('camera-container');
+        const placeholder = document.getElementById('camera-placeholder');
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            container.classList.add('d-none');
+            placeholder.classList.remove('d-none');
+            captureBtn.classList.add('disabled');
+            startBtn.innerText = "1. Start Camera";
+            startBtn.classList.remove('btn-danger');
+            startBtn.classList.add('btn-outline-secondary');
+        }
+
+        document.getElementById('camera-tab').addEventListener('hidden.bs.tab', function () {
+            stopCamera();
+        });
+
+        startBtn.addEventListener('click', async () => {
+            if (stream) {
+                stopCamera();
+                return;
+            }
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                video.srcObject = stream;
+                placeholder.classList.add('d-none');
+                container.classList.remove('d-none');
+                captureBtn.classList.remove('disabled');
+                
+                startBtn.innerText = "Stop Camera";
+                startBtn.classList.remove('btn-outline-secondary');
+                startBtn.classList.add('btn-danger');
+            } catch (err) {
+                alert("Could not access camera: " + err);
+            }
+        });
+
+        captureBtn.addEventListener('click', () => {
+            if (!stream) return;
+            
+            // Set canvas to video size
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Draw current frame
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert to a File object
+            canvas.toBlob((blob) => {
+                const file = new File([blob], "camera_capture.jpg", { type: "image/jpeg" });
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                
+                // Set the django crispy form file input to this captured file!
+                const fileInput = document.querySelector('input[type="file"]');
+                if (fileInput) {
+                    fileInput.files = dt.files;
+                    
+                    // Stop camera back
+                    stopCamera();
+                    
+                    // Switch interface back to File Upload tab to show the captured file
+                    const uploadTabEl = document.getElementById('file-tab');
+                    const tab = new bootstrap.Tab(uploadTabEl);
+                    tab.show();
+                }
+            }, 'image/jpeg', 0.95);
+        });
+    });
+
+    // Add simple pulse animation
+    const style = document.createElement('style');
+    style.innerHTML = `
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse {
+            animation: pulse 1.5s infinite;
+        }
+    `;
+    document.head.appendChild(style);
+</script>
+{% endblock %}

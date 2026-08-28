@@ -1,0 +1,29 @@
+{% extends 'prediction/base.html' %}
+{% block nav_links %}{% endblock %}
+{% block content %}
+<div class="row justify-content-center animate-fade-in mt-5">
+    <div class="col-md-5">
+        <div class="premium-card p-5">
+            <h2 class="text-center mb-4 fw-bold" style="color: var(--primary-color);">Welcome Back</h2>
+            <p class="text-center text-muted mb-4">Please enter your credentials to securely login.</p>
+            <form method="POST" action="{% url 'login' %}">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="username" class="form-label fw-semibold text-secondary">Email or Username</label>
+                    <input type="text" class="form-control form-control-lg border-0 bg-light" id="username" name="username" placeholder="admin" required>
+                </div>
+                <div class="mb-4">
+                    <label for="password" class="form-label fw-semibold text-secondary">Password</label>
+                    <input type="password" class="form-control form-control-lg border-0 bg-light" id="password" name="password" placeholder="••••••••" required>
+                </div>
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg shadow-sm">Login</button>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="#" class="text-decoration-none text-muted small">Forgot password?</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

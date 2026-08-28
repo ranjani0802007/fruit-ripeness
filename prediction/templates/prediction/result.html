@@ -1,0 +1,75 @@
+{% extends 'prediction/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10 animate-fade-in">
+        <div class="row g-4">
+            <div class="col-md-5">
+                <div class="mb-4">
+                    <h6 class="text-muted text-uppercase fw-bold mb-2">Your Upload</h6>
+                    <div class="premium-card">
+                        <img src="{{ instance.image.url }}" class="img-fluid w-100 rounded-3"
+                            style="height: 300px; object-fit: cover;" alt="Uploaded Image">
+                    </div>
+                </div>
+
+                {% if recommendation.display_name != 'No diseases detected' %}
+                <div>
+                    <h6 class="text-muted text-uppercase fw-bold mb-2">Typical Symptoms (Reference)</h6>
+                    <div class="premium-card">
+                        <img src="{% static 'prediction/images/reference/' %}{{ recommendation.reference_image }}"
+                            class="img-fluid w-100 rounded-3" style="height: 300px; object-fit: cover;"
+                            alt="Reference Image for {{ recommendation.display_name }}">
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center p-4 bg-success bg-opacity-10 rounded-4 border border-success">
+                    <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                    <h4 class="fw-bold text-success mt-3">No Diseases Detected!</h4>
+                    <p class="mb-0 text-dark">Your plant looks healthy and vibrant.</p>
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-md-7">
+                <div class="premium-card p-4 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div
+                            class="badge {% if 'Healthy' in instance.prediction %}bg-success{% else %}bg-danger{% endif %} px-3 py-2 fs-6">
+                            {{ recommendation.disease_type }}
+                        </div>
+                        <div class="text-muted small">Confidence: <span class="fw-bold">{{ confidence_percent }}</span>
+                        </div>
+                    </div>
+
+                    <h1 class="fw-bold mb-3 text-dark">{{ recommendation.display_name }}</h1>
+                    <p class="lead text-muted mb-4">{{ recommendation.description }}</p>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="p-3 bg-light rounded-4 border-start border-4 border-primary">
+                                <h5 class="fw-bold text-primary mb-2">
+                                    <i class="bi bi-shield-check"></i> Treatment Recommendation
+                                </h5>
+                                <p class="mb-0">{{ recommendation.treatment }}</p>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="p-3 bg-light rounded-4 border-start border-4 border-success">
+                                <h5 class="fw-bold text-success mb-2">
+                                    <i class="bi bi-clock-history"></i> Prevention Measures
+                                </h5>
+                                <p class="mb-0">{{ recommendation.prevention }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 d-grid">
+                        <a href="{% url 'upload' %}" class="btn btn-primary btn-lg rounded-3">Analyze New Image</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
